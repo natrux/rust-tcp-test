@@ -26,7 +26,7 @@ impl<S: Server+Send+'static> TcpAcceptor<S>{
 	}
 
 	fn start<A: std::net::ToSocketAddrs+Clone+Send+'static>(mut self, address: A) -> std::thread::JoinHandle<()>{
-		std::thread::spawn(move || {self.bind_loop(address)})
+		std::thread::spawn(move || { self.bind_loop(address); })
 	}
 
 	fn bind_loop<A: std::net::ToSocketAddrs+Clone>(&mut self, address: A){
@@ -47,7 +47,10 @@ impl<S: Server+Send+'static> TcpAcceptor<S>{
 			Ok(stream) => {
 				self.server.on_accept(stream);
 			},
-			Err(err) => println!("TcpListener::accept() failed with: {}", err)
+			Err(err) => {
+				println!("TcpListener::accept() failed with: {}", err);
+				std::thread::sleep(std::time::Duration::from_millis(1000));
+			}
 			};
 		}
 	}
@@ -133,6 +136,10 @@ impl ReverseGateway{
 			stream: None
 		}
 	}
+
+	fn create() -> TcpConnector<Self>{
+		TcpConnector::new(Self::new())
+	}
 }
 
 impl Gateway for ReverseGateway{
@@ -145,12 +152,13 @@ impl Gateway for ReverseGateway{
 	}
 
 	fn on_receive(&mut self, msg: &[u8]){
-		if let Some(stream_) = self.stream.as_mut(){
-			let mut response: Vec<u8> = Vec::new();
-			for x in msg.iter().rev(){
-				response.push(*x);
-			}
-			if let Err(err) = stream_.write_all(&response){
+		if let Some(stream) = self.stream.as_mut(){
+			let response = {
+				let mut v = msg.to_vec();
+				v.reverse();
+				v
+			};
+			if let Err(err) = stream.write_all(&response){
 				println!("TcpStream.write_all() failed with: {}", err);
 			}
 		}
@@ -165,6 +173,10 @@ impl ReverseServer{
 	fn new() -> ReverseServer{
 		ReverseServer{
 		}
+	}
+
+	fn create() -> TcpAcceptor<Self>{
+		TcpAcceptor::new(Self::new())
 	}
 }
 
@@ -186,8 +198,9 @@ impl Server for ReverseServer{
 fn main(){
 	println!("Hello, world!");
 
-	TcpAcceptor::new(ReverseServer::new()).start("localhost:1234");
-	TcpConnector::new(ReverseGateway::new()).start_connect("localhost:1235");
+	ReverseServer::create().start("localhost:1234");
+	ReverseGateway::create().start_connect("localhost:1235");
 
 	std::thread::sleep(std::time::Duration::from_secs(60));
 }
+
