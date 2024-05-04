@@ -22,11 +22,11 @@ impl<S: Server+Send+'static> TcpAcceptor<S>{
 	fn bind_loop<A: std::net::ToSocketAddrs+Clone>(&mut self, address: A){
 		loop{
 			match std::net::TcpListener::bind(address.clone()){
-			Ok(listener) => self.accept_loop(listener),
-			Err(err) => {
-				println!("TcpListener::bind() failed with: {}", err);
-				std::thread::sleep(std::time::Duration::from_millis(1000));
-			}
+				Ok(listener) => self.accept_loop(listener),
+				Err(err) => {
+					println!("TcpListener::bind() failed with: {}", err);
+					std::thread::sleep(std::time::Duration::from_millis(1000));
+				}
 			}
 		}
 	}
@@ -34,14 +34,14 @@ impl<S: Server+Send+'static> TcpAcceptor<S>{
 	fn accept_loop(&mut self, listener: std::net::TcpListener){
 		for value in listener.incoming(){
 			match value{
-			Ok(stream) => {
-				self.server.on_accept(stream);
-			},
-			Err(err) => {
-				println!("TcpListener::accept() failed with: {}", err);
-				std::thread::sleep(std::time::Duration::from_millis(1000));
+				Ok(stream) => {
+					self.server.on_accept(stream);
+				},
+				Err(err) => {
+					println!("TcpListener::accept() failed with: {}", err);
+					std::thread::sleep(std::time::Duration::from_millis(1000));
+				}
 			}
-			};
 		}
 	}
 }

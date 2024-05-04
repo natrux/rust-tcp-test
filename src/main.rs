@@ -22,8 +22,8 @@ impl ReverseGateway{
 }
 
 impl Gateway for ReverseGateway{
-	fn on_connect(&mut self, new_stream: &std::net::TcpStream){
-		self.stream = new_stream.try_clone().ok();
+	fn on_connect(&mut self, stream: &std::net::TcpStream){
+		self.stream = stream.try_clone().ok();
 	}
 
 	fn on_disconnect(&mut self){
@@ -62,7 +62,7 @@ impl ReverseServer{
 
 impl Server for ReverseServer{
 	fn on_accept(&mut self, stream: std::net::TcpStream){
-		TcpConnector::new(ReverseGateway::new()).start_read(stream);
+		ReverseGateway::create().start_read(stream);
 	}
 }
 
